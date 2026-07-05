@@ -6,7 +6,7 @@ namespace Hermes;
 
 /// <summary>
 /// HTTP calls to the LLM server (Ollama). Returns generated text plus input/output
-/// token counts. POSTs to {LlmServerUrl}/api/generate with stream disabled.
+/// token counts. POSTs to {OllamaUrl}/api/generate with stream disabled.
 /// </summary>
 public sealed class OllamaClient : IDisposable
 {
@@ -18,7 +18,7 @@ public sealed class OllamaClient : IDisposable
         _config = config;
         _http = new HttpClient
         {
-            BaseAddress = new Uri(config.LlmServerUrl),
+            BaseAddress = new Uri(config.OllamaUrl),
             // Local generation of a full spec can take 30-90s+, so be generous.
             Timeout = TimeSpan.FromSeconds(config.RequestTimeoutSeconds)
         };

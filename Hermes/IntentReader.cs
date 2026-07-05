@@ -14,7 +14,7 @@ public sealed class IntentReader
     /// <summary>New intent files in the source folder (top level only, excludes _processed).</summary>
     public IReadOnlyList<FileInfo> FindNew()
     {
-        var source = new DirectoryInfo(_config.SourceDir);
+        var source = new DirectoryInfo(_config.IntentDir);
         if (!source.Exists)
             return Array.Empty<FileInfo>();
 

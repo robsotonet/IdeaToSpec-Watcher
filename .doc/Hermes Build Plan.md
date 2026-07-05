@@ -35,7 +35,6 @@ Hermes/                      (solution / repo — its OWN git repo, not inside t
 Keep it small. No framework (no CrewAI/AutoGen/Semantic Kernel needed for v0.1). Plain `HttpClient`.
 
 ## Config (appsettings.json)
-> **Note (as implemented):** the setting names below were renamed during the build for clarity — `OllamaUrl`→`LlmServerUrl`, `IntentDir`→`SourceDir`, `SpecDir`→`DestinationDir`. See `Hermes/README.md` and `Hermes/appsettings.json` for the authoritative config. The snippet below is the original design.
 ```json
 {
   "OllamaUrl": "http://ubuntuai01:11434",

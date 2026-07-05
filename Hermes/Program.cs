@@ -25,9 +25,9 @@ catch (InvalidOperationException ex)
 }
 
 Console.WriteLine($"Hermes v0.1  (environment: {environment})");
-Console.WriteLine($"  Source folder      : {config.SourceDir}");
-Console.WriteLine($"  Destination folder : {config.DestinationDir}");
-Console.WriteLine($"  LLM server address : {config.LlmServerUrl}");
+Console.WriteLine($"  Intent dir (source)     : {config.IntentDir}");
+Console.WriteLine($"  Spec dir (destination)  : {config.SpecDir}");
+Console.WriteLine($"  Ollama URL (LLM server) : {config.OllamaUrl}");
 Console.WriteLine($"  Model              : {config.Model}");
 Console.WriteLine();
 
@@ -39,7 +39,7 @@ if (args.Length > 0 && args[0] == "test-ollama")
         ? args[1]
         : "In one short sentence, what is a build specification?";
 
-    Console.WriteLine($"Sending prompt to {config.Model} @ {config.LlmServerUrl} ...");
+    Console.WriteLine($"Sending prompt to {config.Model} @ {config.OllamaUrl} ...");
     Console.WriteLine($"  prompt: {prompt}");
     Console.WriteLine();
 

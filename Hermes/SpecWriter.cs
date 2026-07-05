@@ -18,7 +18,7 @@ public sealed class SpecWriter
     /// </summary>
     public string Write(string intentFileName, GenerationResult result)
     {
-        Directory.CreateDirectory(_config.DestinationDir);
+        Directory.CreateDirectory(_config.SpecDir);
 
         var now = DateTime.Now;
         var stamp = now.ToString("yyyyMMdd-HHmm");
@@ -26,10 +26,10 @@ public sealed class SpecWriter
 
         // Keep the plan's minute-precision name, but de-duplicate if a spec for the
         // same intent already exists this minute rather than overwriting it.
-        var path = Path.Combine(_config.DestinationDir, $"spec-{intentStem}-{stamp}.md");
+        var path = Path.Combine(_config.SpecDir, $"spec-{intentStem}-{stamp}.md");
         var suffix = 2;
         while (File.Exists(path))
-            path = Path.Combine(_config.DestinationDir, $"spec-{intentStem}-{stamp}-{suffix++}.md");
+            path = Path.Combine(_config.SpecDir, $"spec-{intentStem}-{stamp}-{suffix++}.md");
 
         var generatedIso = now.ToString("yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture);
 

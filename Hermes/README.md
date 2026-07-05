@@ -12,18 +12,18 @@ It writes **specs only, never code**. See `../.doc/Hermes Build Plan.md` for the
 
 Everything lives in `appsettings.json`. The three primary, user-editable settings:
 
-| Setting          | Meaning                                                        |
-|------------------|----------------------------------------------------------------|
-| `SourceDir`      | **Source folder** — intent `*.md` files are read from here     |
-| `DestinationDir` | **Destination folder** — generated spec `*.md` files go here   |
-| `LlmServerUrl`   | **LLM server address** — Ollama base URL (`/api/generate`)     |
+| Setting      | Meaning                                                        |
+|--------------|----------------------------------------------------------------|
+| `IntentDir`  | **Source folder** — intent `*.md` files are read from here     |
+| `SpecDir`    | **Destination folder** — generated spec `*.md` files go here   |
+| `OllamaUrl`  | **LLM server address** — Ollama base URL (`/api/generate`)     |
 
-Secondary settings: `Model`, `ProcessedDir` (defaults to `SourceDir/_processed`), `TokenLog`,
+Secondary settings: `Model`, `ProcessedDir` (defaults to `IntentDir/_processed`), `TokenLog`,
 `SystemPromptPath`, `RequestTimeoutSeconds`, `FrontierInputRatePerM`, `FrontierOutputRatePerM`.
 
 All three primary settings are validated on startup — missing folders are created, a malformed
 URL fails fast. Any setting can also be overridden with a `HERMES_`-prefixed environment variable
-(e.g. `HERMES_Model=devstral:24b`).
+(e.g. `HERMES_Model=devstral:24b`, `HERMES_OllamaUrl=http://host:11434`).
 
 ### Environments
 - **Production** (default): uses `appsettings.json` — the Windows paths on devRyzen.
@@ -81,12 +81,13 @@ Edit `scripts\register-scheduled-task.ps1` if `dev.rob` is a domain account or y
 
 ## Output formats
 
-**Spec** (`spec-<intent>-<yyyymmdd-hhmm>.md`) — YAML frontmatter then the model's markdown:
+**Spec** (`spec-<intent>-<yyyymmdd-hhmm>.md`, with a `-2`, `-3`… suffix if a spec for the same
+intent already exists for that minute) — quoted YAML frontmatter then the model's markdown:
 ```yaml
 ---
-source_intent: password-strength-check.md
-model: gpt-oss:20b
-generated: 2026-07-04T20:03:32-04:00
+source_intent: "password-strength-check.md"
+model: "gpt-oss:20b"
+generated: "2026-07-04T20:03:32-04:00"
 in_tokens: 618
 out_tokens: 1457
 ---
@@ -103,7 +104,7 @@ Caveat: ±10-15% vs. a real frontier bill (tokenizer differences).
 
 ## How it works
 
-`Program.cs` loads config → for each new intent in `SourceDir`, `OllamaClient` sends
+`Program.cs` loads config → for each new intent in `IntentDir`, `OllamaClient` sends
 `systemPrompt.md` + the intent to the model → `SpecWriter` writes the spec → `TokenLog` appends
 usage → `IntentReader` moves the intent to `_processed`. Idempotent: reruns only pick up new files;
 a failed intent is left in place to retry next run.
