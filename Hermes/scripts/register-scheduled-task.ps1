@@ -32,7 +32,7 @@ $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -DontStopOnIdleEnd 
 $password = Read-Host "Password for $user" -AsSecureString
 $bstr     = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($password)
 try {
-    $plain = [Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
+    $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
 
     Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger `
         -Settings $settings -User $user -Password $plain -RunLevel Limited -Force `

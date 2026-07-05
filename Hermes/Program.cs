@@ -134,7 +134,18 @@ if (args.Length > 0 && args[0] == "test-spec")
 
             var result = await ollama.GenerateAsync(fullPrompt);
             var specPath = writer.Write(intent.Name, result);
-            tokenLog.Append(intent.Name, result);
+
+            // Token logging is best-effort: a logging failure must not leave the
+            // intent unprocessed (which would reprocess it and produce a duplicate spec).
+            try
+            {
+                tokenLog.Append(intent.Name, result);
+            }
+            catch (Exception logEx)
+            {
+                Console.Error.WriteLine($"(warning: token log append failed: {logEx.Message})");
+            }
+
             reader.MarkProcessed(intent);
 
             var estUsd = tokenLog.EstimateFrontierUsd(result);
