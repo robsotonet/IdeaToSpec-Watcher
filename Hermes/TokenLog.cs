@@ -72,37 +72,43 @@ public sealed class TokenLog
     /// LegacyHeader, rewrite just that line to the current Header. Data rows are left as-is
     /// (older rows keep their six fields; the two new columns read as empty for them). No-op
     /// for a missing/empty file, an already-current header, or any unrecognized first line.
-    /// The rewrite goes through a temp file + atomic replace so a crash can't corrupt the log.
+    /// The rewrite streams through a temp file (preserving the source encoding) and finishes
+    /// with an atomic rename-overwrite, so a crash can never leave the log missing or partial.
     /// </summary>
     private static void UpgradeLegacyHeader(string path)
     {
         if (!File.Exists(path) || new FileInfo(path).Length == 0)
             return;
 
-        using (var reader = new StreamReader(path))
-        {
-            var firstLine = reader.ReadLine();
-            // Only touch a header we recognize as the old one; leave current/unknown headers alone.
-            if (firstLine != LegacyHeader)
-                return;
-        }
-
-        var lines = File.ReadAllLines(path);
-        lines[0] = Header;
-
         var tempPath = path + ".tmp";
-        File.WriteAllLines(tempPath, lines);
-
-        // Atomic where supported; File.Replace preserves nothing extra we need here.
-        // Fall back to delete+move if Replace isn't available for the filesystem.
         try
         {
-            File.Replace(tempPath, path, destinationBackupFileName: null);
+            using (var reader = new StreamReader(path))
+            {
+                var firstLine = reader.ReadLine();
+                // Only touch a header we recognize as the old one; leave current/unknown alone.
+                if (firstLine != LegacyHeader)
+                    return;
+
+                // Stream the remaining rows through untouched rather than buffering the
+                // whole (potentially large) log, and preserve the source encoding/BOM.
+                using var writer = new StreamWriter(tempPath, append: false, reader.CurrentEncoding);
+                writer.WriteLine(Header);
+                string? line;
+                while ((line = reader.ReadLine()) != null)
+                    writer.WriteLine(line);
+            }
+
+            // Atomic rename-overwrite (rename(2) on Unix, MoveFileEx-replace on Windows):
+            // no window where the log is missing, unlike a delete-then-move.
+            File.Move(tempPath, path, overwrite: true);
         }
-        catch (PlatformNotSupportedException)
+        finally
         {
-            File.Delete(path);
-            File.Move(tempPath, path);
+            // Clean up the temp file if we bailed early (unrecognized header) or threw
+            // before the move completed.
+            if (File.Exists(tempPath))
+                File.Delete(tempPath);
         }
     }
 
