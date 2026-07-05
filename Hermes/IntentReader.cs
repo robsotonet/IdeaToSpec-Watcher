@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Hermes;
 
 /// <summary>
@@ -33,7 +35,7 @@ public sealed class IntentReader
         // If a same-named file was processed before, disambiguate rather than throw.
         if (File.Exists(target))
         {
-            var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+            var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
             var name = Path.GetFileNameWithoutExtension(intent.Name);
             var ext = intent.Extension;
             target = Path.Combine(_config.EffectiveProcessedDir, $"{name}-{stamp}{ext}");

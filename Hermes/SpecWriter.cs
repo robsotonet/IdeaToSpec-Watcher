@@ -21,7 +21,7 @@ public sealed class SpecWriter
         Directory.CreateDirectory(_config.SpecDir);
 
         var now = DateTime.Now;
-        var stamp = now.ToString("yyyyMMdd-HHmm");
+        var stamp = now.ToString("yyyyMMdd-HHmm", CultureInfo.InvariantCulture);
         var intentStem = Sanitize(Path.GetFileNameWithoutExtension(intentFileName));
 
         // Keep the plan's minute-precision name, but de-duplicate if a spec for the
@@ -41,7 +41,7 @@ public sealed class SpecWriter
             $"in_tokens: {result.InputTokens}\n" +
             $"out_tokens: {result.OutputTokens}\n" +
             "---\n\n" +
-            result.Response.Trim() + "\n";
+            result.Response.TrimEnd() + "\n";
 
         File.WriteAllText(path, content);
         return path;
