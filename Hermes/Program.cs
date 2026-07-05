@@ -1,3 +1,4 @@
+using System.Globalization;
 using Hermes;
 using Microsoft.Extensions.Configuration;
 
@@ -158,9 +159,14 @@ if (args.Length > 0 && args[0] == "test-spec")
 
             reader.MarkProcessed(intent);
 
-            var estUsd = tokenLog.EstimateFrontierUsd(result);
-            var ollamaSecs = result.OllamaSeconds is double os ? $"{os:F1}s" : "n/a";
-            Console.WriteLine($"ok -> {Path.GetFileName(specPath)}  (in:{result.InputTokens} out:{result.OutputTokens}, wall:{result.WallSeconds:F1}s ollama:{ollamaSecs}, ~${estUsd:F4} frontier)");
+            // Format numerics with InvariantCulture so the console line matches the
+            // CSV/YAML output (which also use invariant) regardless of machine locale.
+            var estUsd = tokenLog.EstimateFrontierUsd(result).ToString("F4", CultureInfo.InvariantCulture);
+            var wallSecs = result.WallSeconds.ToString("F1", CultureInfo.InvariantCulture);
+            var ollamaSecs = result.OllamaSeconds is double os
+                ? os.ToString("F1", CultureInfo.InvariantCulture) + "s"
+                : "n/a";
+            Console.WriteLine($"ok -> {Path.GetFileName(specPath)}  (in:{result.InputTokens} out:{result.OutputTokens}, wall:{wallSecs}s ollama:{ollamaSecs}, ~${estUsd} frontier)");
             processed++;
         }
         catch (Exception ex)
