@@ -27,7 +27,8 @@ $action   = New-ScheduledTaskAction -Execute 'cmd.exe' `
                 -Argument "/c `"$runScript`"" -WorkingDirectory $projectDir
 $trigger  = New-ScheduledTaskTrigger -Daily -At $time
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -DontStopOnIdleEnd `
-                -ExecutionTimeLimit (New-TimeSpan -Hours 1)
+                -ExecutionTimeLimit (New-TimeSpan -Hours 1) `
+                -MultipleInstances IgnoreNew   # if a run is still going, skip the new trigger
 
 $password = Read-Host "Password for $user" -AsSecureString
 $bstr     = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($password)

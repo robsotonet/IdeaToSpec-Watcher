@@ -50,9 +50,16 @@ public sealed class TokenLog
         writer.WriteLine(row);
     }
 
-    /// <summary>Minimal CSV field quoting for values that may contain commas, quotes, or newlines.</summary>
+    /// <summary>
+    /// CSV field quoting for values that may contain commas, quotes, or newlines, plus a guard
+    /// against spreadsheet formula injection: a field starting with = + - @ (or a tab) is prefixed
+    /// with an apostrophe so Excel/Sheets treats it as text rather than an executable formula.
+    /// </summary>
     private static string Csv(string value)
     {
+        if (value.Length > 0 && "=+-@\t".IndexOf(value[0]) >= 0)
+            value = "'" + value;
+
         if (value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r'))
             return "\"" + value.Replace("\"", "\"\"") + "\"";
         return value;
