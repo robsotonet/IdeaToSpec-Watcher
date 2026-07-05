@@ -38,8 +38,8 @@ public sealed class SpecWriter
             $"source_intent: {Yaml(intentFileName)}\n" +
             $"model: {Yaml(_config.Model)}\n" +
             $"generated: {Yaml(generatedIso)}\n" +
-            $"in_tokens: {result.InputTokens}\n" +
-            $"out_tokens: {result.OutputTokens}\n" +
+            $"in_tokens: {result.InputTokens.ToString(CultureInfo.InvariantCulture)}\n" +
+            $"out_tokens: {result.OutputTokens.ToString(CultureInfo.InvariantCulture)}\n" +
             $"wall_seconds: {result.WallSeconds.ToString("F1", CultureInfo.InvariantCulture)}\n" +
             // Empty scalar (null in YAML) when Ollama didn't report total_duration.
             $"ollama_seconds: {(result.OllamaSeconds is double os ? os.ToString("F1", CultureInfo.InvariantCulture) : "")}\n" +

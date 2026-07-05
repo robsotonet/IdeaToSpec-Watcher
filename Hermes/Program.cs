@@ -161,12 +161,14 @@ if (args.Length > 0 && args[0] == "test-spec")
 
             // Format numerics with InvariantCulture so the console line matches the
             // CSV/YAML output (which also use invariant) regardless of machine locale.
+            var inTokens = result.InputTokens.ToString(CultureInfo.InvariantCulture);
+            var outTokens = result.OutputTokens.ToString(CultureInfo.InvariantCulture);
             var estUsd = tokenLog.EstimateFrontierUsd(result).ToString("F4", CultureInfo.InvariantCulture);
             var wallSecs = result.WallSeconds.ToString("F1", CultureInfo.InvariantCulture);
             var ollamaSecs = result.OllamaSeconds is double os
                 ? os.ToString("F1", CultureInfo.InvariantCulture) + "s"
                 : "n/a";
-            Console.WriteLine($"ok -> {Path.GetFileName(specPath)}  (in:{result.InputTokens} out:{result.OutputTokens}, wall:{wallSecs}s ollama:{ollamaSecs}, ~${estUsd} frontier)");
+            Console.WriteLine($"ok -> {Path.GetFileName(specPath)}  (in:{inTokens} out:{outTokens}, wall:{wallSecs}s ollama:{ollamaSecs}, ~${estUsd} frontier)");
             processed++;
         }
         catch (Exception ex)

@@ -4,8 +4,10 @@ namespace Hermes;
 
 /// <summary>
 /// Appends one CSV row per LLM call:
-/// timestamp,intent_file,model,in_tokens,out_tokens,est_frontier_usd
-/// where est_frontier_usd = in/1e6*InputRate + out/1e6*OutputRate.
+/// timestamp,intent_file,model,in_tokens,out_tokens,est_frontier_usd,wall_seconds,ollama_seconds
+/// where est_frontier_usd = in/1e6*InputRate + out/1e6*OutputRate, wall_seconds is
+/// total elapsed time, and ollama_seconds is the model's inference time (empty if
+/// Ollama didn't report it).
 /// This is the data that answers "should I pay for a frontier model?" later.
 /// Caveat: ±10-15% vs. a real frontier bill (tokenizer differences).
 /// </summary>
