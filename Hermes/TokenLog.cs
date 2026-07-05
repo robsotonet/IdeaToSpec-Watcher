@@ -30,8 +30,6 @@ public sealed class TokenLog
         if (!string.IsNullOrEmpty(dir))
             Directory.CreateDirectory(dir);
 
-        var newFile = !File.Exists(path);
-
         var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture);
         var estUsd = EstimateFrontierUsd(result).ToString("F4", CultureInfo.InvariantCulture);
         var row = string.Join(",",
@@ -42,16 +40,20 @@ public sealed class TokenLog
             result.OutputTokens.ToString(CultureInfo.InvariantCulture),
             estUsd);
 
-        using var writer = new StreamWriter(path, append: true);
-        if (newFile)
+        // Open (or create) the file and decide on the header from the actual stream
+        // length, so an empty file doesn't end up headerless.
+        using var stream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
+        stream.Seek(0, SeekOrigin.End);
+        using var writer = new StreamWriter(stream);
+        if (stream.Length == 0)
             writer.WriteLine(Header);
         writer.WriteLine(row);
     }
 
-    /// <summary>Minimal CSV field quoting for values that may contain commas or quotes.</summary>
+    /// <summary>Minimal CSV field quoting for values that may contain commas, quotes, or newlines.</summary>
     private static string Csv(string value)
     {
-        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r'))
             return "\"" + value.Replace("\"", "\"\"") + "\"";
         return value;
     }

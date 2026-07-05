@@ -22,17 +22,22 @@ public sealed class SpecWriter
 
         var now = DateTime.Now;
         var stamp = now.ToString("yyyyMMdd-HHmm");
-        var intentStem = Path.GetFileNameWithoutExtension(intentFileName);
-        var specName = $"spec-{intentStem}-{stamp}.md";
-        var path = Path.Combine(_config.DestinationDir, specName);
+        var intentStem = Sanitize(Path.GetFileNameWithoutExtension(intentFileName));
+
+        // Keep the plan's minute-precision name, but de-duplicate if a spec for the
+        // same intent already exists this minute rather than overwriting it.
+        var path = Path.Combine(_config.DestinationDir, $"spec-{intentStem}-{stamp}.md");
+        var suffix = 2;
+        while (File.Exists(path))
+            path = Path.Combine(_config.DestinationDir, $"spec-{intentStem}-{stamp}-{suffix++}.md");
 
         var generatedIso = now.ToString("yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture);
 
         var content =
             "---\n" +
-            $"source_intent: {intentFileName}\n" +
-            $"model: {_config.Model}\n" +
-            $"generated: {generatedIso}\n" +
+            $"source_intent: {Yaml(intentFileName)}\n" +
+            $"model: {Yaml(_config.Model)}\n" +
+            $"generated: {Yaml(generatedIso)}\n" +
             $"in_tokens: {result.InputTokens}\n" +
             $"out_tokens: {result.OutputTokens}\n" +
             "---\n\n" +
@@ -41,4 +46,16 @@ public sealed class SpecWriter
         File.WriteAllText(path, content);
         return path;
     }
+
+    /// <summary>Replace any characters that are invalid in a filename with '_'.</summary>
+    private static string Sanitize(string name)
+    {
+        foreach (var c in Path.GetInvalidFileNameChars())
+            name = name.Replace(c, '_');
+        return name;
+    }
+
+    /// <summary>Quote a YAML string scalar so ':' '#' '\' etc. can't break parsing.</summary>
+    private static string Yaml(string value) =>
+        "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 }

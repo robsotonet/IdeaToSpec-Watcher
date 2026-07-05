@@ -52,8 +52,9 @@ public sealed class HermesConfig
             errors.Add("DestinationDir (destination folder) is not set.");
         if (string.IsNullOrWhiteSpace(LlmServerUrl))
             errors.Add("LlmServerUrl (LLM server address) is not set.");
-        else if (!Uri.TryCreate(LlmServerUrl, UriKind.Absolute, out _))
-            errors.Add($"LlmServerUrl is not a valid absolute URL: '{LlmServerUrl}'.");
+        else if (!Uri.TryCreate(LlmServerUrl, UriKind.Absolute, out var uri)
+                 || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            errors.Add($"LlmServerUrl must be an absolute http/https URL: '{LlmServerUrl}'.");
 
         if (errors.Count > 0)
             throw new InvalidOperationException(
