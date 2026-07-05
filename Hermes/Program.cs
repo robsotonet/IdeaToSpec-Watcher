@@ -129,9 +129,10 @@ if (args.Length > 0 && args[0] == "test-spec")
         Console.Write($"  {intent.Name} ... ");
         try
         {
-            // Wall-clock: total elapsed from processing start through the write,
-            // covering network, HTTP and IO overhead. Stopped just before the
-            // write so the same figure can be embedded in the spec being written.
+            // Wall-clock: elapsed from processing start (intent read + Ollama call),
+            // covering network, HTTP and IO overhead. Stopped just before the write
+            // so the same figure can be embedded in the spec being written (the
+            // write itself is therefore excluded).
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             var intentText = await File.ReadAllTextAsync(intent.FullName);
