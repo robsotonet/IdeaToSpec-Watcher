@@ -4,14 +4,16 @@ namespace Hermes;
 
 /// <summary>
 /// Appends one CSV row per LLM call:
-/// timestamp,intent_file,model,in_tokens,out_tokens,est_frontier_usd
-/// where est_frontier_usd = in/1e6*InputRate + out/1e6*OutputRate.
+/// timestamp,intent_file,model,in_tokens,out_tokens,est_frontier_usd,wall_seconds,ollama_seconds
+/// where est_frontier_usd = in/1e6*InputRate + out/1e6*OutputRate, wall_seconds is
+/// total elapsed time, and ollama_seconds is the model's inference time (empty if
+/// Ollama didn't report it).
 /// This is the data that answers "should I pay for a frontier model?" later.
 /// Caveat: ±10-15% vs. a real frontier bill (tokenizer differences).
 /// </summary>
 public sealed class TokenLog
 {
-    private const string Header = "timestamp,intent_file,model,in_tokens,out_tokens,est_frontier_usd";
+    private const string Header = "timestamp,intent_file,model,in_tokens,out_tokens,est_frontier_usd,wall_seconds,ollama_seconds";
 
     private readonly HermesConfig _config;
 
@@ -32,13 +34,20 @@ public sealed class TokenLog
 
         var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture);
         var estUsd = EstimateFrontierUsd(result).ToString("F4", CultureInfo.InvariantCulture);
+        var wallSeconds = result.WallSeconds.ToString("F1", CultureInfo.InvariantCulture);
+        // Empty field when Ollama didn't report total_duration.
+        var ollamaSeconds = result.OllamaSeconds is double os
+            ? os.ToString("F1", CultureInfo.InvariantCulture)
+            : "";
         var row = string.Join(",",
             timestamp,
             Csv(intentFile),
             Csv(_config.Model),
             result.InputTokens.ToString(CultureInfo.InvariantCulture),
             result.OutputTokens.ToString(CultureInfo.InvariantCulture),
-            estUsd);
+            estUsd,
+            wallSeconds,
+            ollamaSeconds);
 
         // Open (or create) the file and decide on the header from the actual stream
         // length, so an empty file doesn't end up headerless.

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Hermes;
 using Microsoft.Extensions.Configuration;
 
@@ -129,10 +130,20 @@ if (args.Length > 0 && args[0] == "test-spec")
         Console.Write($"  {intent.Name} ... ");
         try
         {
+            // Wall-clock: elapsed from processing start (intent read + Ollama call),
+            // covering network, HTTP and IO overhead. Stopped just before the write
+            // so the same figure can be embedded in the spec being written (the
+            // write itself is therefore excluded).
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
             var intentText = await File.ReadAllTextAsync(intent.FullName);
             var fullPrompt = $"{systemPrompt}\n\n--- INTENT ---\n{intentText}\n\n--- SPECIFICATION ---\n";
 
             var result = await ollama.GenerateAsync(fullPrompt);
+
+            stopwatch.Stop();
+            result = result with { WallSeconds = stopwatch.Elapsed.TotalSeconds };
+
             var specPath = writer.Write(intent.Name, result);
 
             // Token logging is best-effort: a logging failure must not leave the
@@ -148,8 +159,16 @@ if (args.Length > 0 && args[0] == "test-spec")
 
             reader.MarkProcessed(intent);
 
-            var estUsd = tokenLog.EstimateFrontierUsd(result);
-            Console.WriteLine($"ok -> {Path.GetFileName(specPath)}  (in:{result.InputTokens} out:{result.OutputTokens}, ~${estUsd:F4} frontier)");
+            // Format numerics with InvariantCulture so the console line matches the
+            // CSV/YAML output (which also use invariant) regardless of machine locale.
+            var inTokens = result.InputTokens.ToString(CultureInfo.InvariantCulture);
+            var outTokens = result.OutputTokens.ToString(CultureInfo.InvariantCulture);
+            var estUsd = tokenLog.EstimateFrontierUsd(result).ToString("F4", CultureInfo.InvariantCulture);
+            var wallSecs = result.WallSeconds.ToString("F1", CultureInfo.InvariantCulture);
+            var ollamaSecs = result.OllamaSeconds is double os
+                ? os.ToString("F1", CultureInfo.InvariantCulture) + "s"
+                : "n/a";
+            Console.WriteLine($"ok -> {Path.GetFileName(specPath)}  (in:{inTokens} out:{outTokens}, wall:{wallSecs}s ollama:{ollamaSecs}, ~${estUsd} frontier)");
             processed++;
         }
         catch (Exception ex)
