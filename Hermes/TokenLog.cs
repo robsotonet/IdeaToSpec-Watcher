@@ -15,6 +15,10 @@ public sealed class TokenLog
 {
     private const string Header = "timestamp,intent_file,model,in_tokens,out_tokens,est_frontier_usd,wall_seconds,ollama_seconds";
 
+    // The pre-duration-logging header. A log written before wall/ollama columns existed
+    // starts with this line; it is upgraded to Header on the next append so new rows align.
+    private const string LegacyHeader = "timestamp,intent_file,model,in_tokens,out_tokens,est_frontier_usd";
+
     private readonly HermesConfig _config;
 
     public TokenLog(HermesConfig config) => _config = config;
@@ -31,6 +35,10 @@ public sealed class TokenLog
         var dir = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(dir))
             Directory.CreateDirectory(dir);
+
+        // Bring a pre-existing log's header up to date before appending, so the new
+        // wall/ollama columns line up with the header rather than drifting past it.
+        UpgradeLegacyHeader(path);
 
         var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture);
         var estUsd = EstimateFrontierUsd(result).ToString("F4", CultureInfo.InvariantCulture);
@@ -57,6 +65,45 @@ public sealed class TokenLog
         if (stream.Length == 0)
             writer.WriteLine(Header);
         writer.WriteLine(row);
+    }
+
+    /// <summary>
+    /// If <paramref name="path"/> is an existing log whose first line is the pre-duration
+    /// LegacyHeader, rewrite just that line to the current Header. Data rows are left as-is
+    /// (older rows keep their six fields; the two new columns read as empty for them). No-op
+    /// for a missing/empty file, an already-current header, or any unrecognized first line.
+    /// The rewrite goes through a temp file + atomic replace so a crash can't corrupt the log.
+    /// </summary>
+    private static void UpgradeLegacyHeader(string path)
+    {
+        if (!File.Exists(path) || new FileInfo(path).Length == 0)
+            return;
+
+        using (var reader = new StreamReader(path))
+        {
+            var firstLine = reader.ReadLine();
+            // Only touch a header we recognize as the old one; leave current/unknown headers alone.
+            if (firstLine != LegacyHeader)
+                return;
+        }
+
+        var lines = File.ReadAllLines(path);
+        lines[0] = Header;
+
+        var tempPath = path + ".tmp";
+        File.WriteAllLines(tempPath, lines);
+
+        // Atomic where supported; File.Replace preserves nothing extra we need here.
+        // Fall back to delete+move if Replace isn't available for the filesystem.
+        try
+        {
+            File.Replace(tempPath, path, destinationBackupFileName: null);
+        }
+        catch (PlatformNotSupportedException)
+        {
+            File.Delete(path);
+            File.Move(tempPath, path);
+        }
     }
 
     /// <summary>
