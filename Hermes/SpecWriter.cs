@@ -1,0 +1,44 @@
+using System.Globalization;
+
+namespace Hermes;
+
+/// <summary>
+/// Writes one spec markdown file per intent to the destination folder, named
+/// spec-&lt;intent&gt;-&lt;yyyymmdd-hhmm&gt;.md with YAML frontmatter followed by the
+/// model's output.
+/// </summary>
+public sealed class SpecWriter
+{
+    private readonly HermesConfig _config;
+
+    public SpecWriter(HermesConfig config) => _config = config;
+
+    /// <summary>
+    /// Write a spec for <paramref name="intentFileName"/>. Returns the full path written.
+    /// </summary>
+    public string Write(string intentFileName, GenerationResult result)
+    {
+        Directory.CreateDirectory(_config.DestinationDir);
+
+        var now = DateTime.Now;
+        var stamp = now.ToString("yyyyMMdd-HHmm");
+        var intentStem = Path.GetFileNameWithoutExtension(intentFileName);
+        var specName = $"spec-{intentStem}-{stamp}.md";
+        var path = Path.Combine(_config.DestinationDir, specName);
+
+        var generatedIso = now.ToString("yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture);
+
+        var content =
+            "---\n" +
+            $"source_intent: {intentFileName}\n" +
+            $"model: {_config.Model}\n" +
+            $"generated: {generatedIso}\n" +
+            $"in_tokens: {result.InputTokens}\n" +
+            $"out_tokens: {result.OutputTokens}\n" +
+            "---\n\n" +
+            result.Response.Trim() + "\n";
+
+        File.WriteAllText(path, content);
+        return path;
+    }
+}
