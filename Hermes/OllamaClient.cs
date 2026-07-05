@@ -41,7 +41,10 @@ public sealed class OllamaClient : IDisposable
         return new GenerationResult(
             Response: body.Response ?? "",
             InputTokens: body.PromptEvalCount,
-            OutputTokens: body.EvalCount);
+            OutputTokens: body.EvalCount,
+            // Ollama reports total_duration in nanoseconds; convert to seconds.
+            // Missing field -> null (leave duration unrecorded rather than crash).
+            OllamaSeconds: body.TotalDuration is long ns ? ns / 1_000_000_000.0 : null);
     }
 
     public void Dispose() => _http.Dispose();
@@ -58,8 +61,20 @@ public sealed class OllamaClient : IDisposable
         [JsonPropertyName("response")] public string? Response { get; init; }
         [JsonPropertyName("prompt_eval_count")] public int PromptEvalCount { get; init; }
         [JsonPropertyName("eval_count")] public int EvalCount { get; init; }
+        [JsonPropertyName("total_duration")] public long? TotalDuration { get; init; }
     }
 }
 
-/// <summary>Text + token accounting returned from a single generation call.</summary>
-public readonly record struct GenerationResult(string Response, int InputTokens, int OutputTokens);
+/// <summary>
+/// Text + token accounting returned from a single generation call.
+/// <paramref name="OllamaSeconds"/> is the model's own inference time (from the
+/// response's total_duration), null if Ollama didn't report it.
+/// <paramref name="WallSeconds"/> is total elapsed time for the intent; it is not
+/// known to the client, so the caller stamps it after measuring (defaults to 0).
+/// </summary>
+public readonly record struct GenerationResult(
+    string Response,
+    int InputTokens,
+    int OutputTokens,
+    double? OllamaSeconds,
+    double WallSeconds = 0);

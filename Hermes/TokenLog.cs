@@ -11,7 +11,7 @@ namespace Hermes;
 /// </summary>
 public sealed class TokenLog
 {
-    private const string Header = "timestamp,intent_file,model,in_tokens,out_tokens,est_frontier_usd";
+    private const string Header = "timestamp,intent_file,model,in_tokens,out_tokens,est_frontier_usd,wall_seconds,ollama_seconds";
 
     private readonly HermesConfig _config;
 
@@ -32,13 +32,20 @@ public sealed class TokenLog
 
         var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ssK", CultureInfo.InvariantCulture);
         var estUsd = EstimateFrontierUsd(result).ToString("F4", CultureInfo.InvariantCulture);
+        var wallSeconds = result.WallSeconds.ToString("F1", CultureInfo.InvariantCulture);
+        // Empty field when Ollama didn't report total_duration.
+        var ollamaSeconds = result.OllamaSeconds is double os
+            ? os.ToString("F1", CultureInfo.InvariantCulture)
+            : "";
         var row = string.Join(",",
             timestamp,
             Csv(intentFile),
             Csv(_config.Model),
             result.InputTokens.ToString(CultureInfo.InvariantCulture),
             result.OutputTokens.ToString(CultureInfo.InvariantCulture),
-            estUsd);
+            estUsd,
+            wallSeconds,
+            ollamaSeconds);
 
         // Open (or create) the file and decide on the header from the actual stream
         // length, so an empty file doesn't end up headerless.

@@ -129,10 +129,19 @@ if (args.Length > 0 && args[0] == "test-spec")
         Console.Write($"  {intent.Name} ... ");
         try
         {
+            // Wall-clock: total elapsed from processing start through the write,
+            // covering network, HTTP and IO overhead. Stopped just before the
+            // write so the same figure can be embedded in the spec being written.
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
             var intentText = await File.ReadAllTextAsync(intent.FullName);
             var fullPrompt = $"{systemPrompt}\n\n--- INTENT ---\n{intentText}\n\n--- SPECIFICATION ---\n";
 
             var result = await ollama.GenerateAsync(fullPrompt);
+
+            stopwatch.Stop();
+            result = result with { WallSeconds = stopwatch.Elapsed.TotalSeconds };
+
             var specPath = writer.Write(intent.Name, result);
 
             // Token logging is best-effort: a logging failure must not leave the
@@ -149,7 +158,8 @@ if (args.Length > 0 && args[0] == "test-spec")
             reader.MarkProcessed(intent);
 
             var estUsd = tokenLog.EstimateFrontierUsd(result);
-            Console.WriteLine($"ok -> {Path.GetFileName(specPath)}  (in:{result.InputTokens} out:{result.OutputTokens}, ~${estUsd:F4} frontier)");
+            var ollamaSecs = result.OllamaSeconds is double os ? $"{os:F1}s" : "n/a";
+            Console.WriteLine($"ok -> {Path.GetFileName(specPath)}  (in:{result.InputTokens} out:{result.OutputTokens}, wall:{result.WallSeconds:F1}s ollama:{ollamaSecs}, ~${estUsd:F4} frontier)");
             processed++;
         }
         catch (Exception ex)

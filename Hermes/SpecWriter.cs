@@ -40,6 +40,9 @@ public sealed class SpecWriter
             $"generated: {Yaml(generatedIso)}\n" +
             $"in_tokens: {result.InputTokens}\n" +
             $"out_tokens: {result.OutputTokens}\n" +
+            $"wall_seconds: {result.WallSeconds.ToString("F1", CultureInfo.InvariantCulture)}\n" +
+            // Empty scalar (null in YAML) when Ollama didn't report total_duration.
+            $"ollama_seconds: {(result.OllamaSeconds is double os ? os.ToString("F1", CultureInfo.InvariantCulture) : "")}\n" +
             "---\n\n" +
             result.Response.TrimEnd() + "\n";
 
